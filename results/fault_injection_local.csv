@@ -1,0 +1,19 @@
+fault,pipeline,caught,stage,blocked_before_deploy,time_to_detection_s,mode,not_run,detail
+control,basic,ok (no alarm),,unknown,,local,trivy-vuln docker-build trivy-image sonarqube,
+control,full,ok (no alarm),,unknown,,local,trivy-vuln docker-build container-smoke-test trivy-image sonarqube,
+vuln-dependency,basic,not caught by the stages that ran,,unknown,,local,trivy-vuln docker-build trivy-image sonarqube,
+vuln-dependency,full,not caught by the stages that ran,,unknown,,local,trivy-vuln docker-build container-smoke-test trivy-image sonarqube,
+hardcoded-secret,basic,yes,trivy-secret,yes,7.1,local,trivy-vuln docker-build trivy-image sonarqube,────────────────────────────────────────
+hardcoded-secret,full,yes,trivy-secret,yes,13.5,local,trivy-vuln docker-build container-smoke-test trivy-image sonarqube,────────────────────────────────────────
+failing-test,basic,yes,unit-tests,yes,7.1,local,trivy-vuln docker-build trivy-image sonarqube,FAILED tests/test_inventory.py::test_expiry_status[2-expiring_soon] - Asserti...
+failing-test,full,yes,unit-tests,yes,7.4,local,trivy-vuln docker-build container-smoke-test trivy-image sonarqube,FAILED tests/test_inventory.py::test_expiry_status[2-expiring_soon] - Asserti...
+model-degradation,basic,not caught by the stages that ran,,unknown,,local,trivy-vuln docker-build trivy-image sonarqube,
+model-degradation,full,yes,business-gate,yes,11.8,local,trivy-vuln docker-build container-smoke-test trivy-image sonarqube,| forecast WAPE absolute | ✅ pass | 16.93 | 20.0 | max allowed |
+expiry-policy-bug,basic,not caught by the stages that ran,,unknown,,local,trivy-vuln docker-build trivy-image sonarqube,
+expiry-policy-bug,full,yes,business-gate,yes,14.3,local,trivy-vuln docker-build container-smoke-test trivy-image sonarqube,| forecast WAPE absolute | ✅ pass | 15.43 | 20.0 | max allowed |
+root-container,basic,not caught by the stages that ran,,unknown,,local,trivy-vuln docker-build trivy-image sonarqube,
+root-container,full,yes,trivy-misconfig,yes,16.9,local,trivy-vuln docker-build container-smoke-test trivy-image sonarqube,────────────────────────────────────────
+tampered-model,basic,not caught by the stages that ran,,unknown,,local,trivy-vuln docker-build trivy-image sonarqube,
+tampered-model,full,not caught by the stages that ran,,unknown,,local,trivy-vuln docker-build container-smoke-test trivy-image sonarqube,
+poisoned-data,basic,not caught by the stages that ran,,unknown,,local,trivy-vuln docker-build trivy-image sonarqube,
+poisoned-data,full,yes,data-validation,yes,0.4,local,trivy-vuln docker-build container-smoke-test trivy-image sonarqube,- ⚠️ MLK-001: demand pattern changed (PSI 0.82) - expected when retraining on new data
