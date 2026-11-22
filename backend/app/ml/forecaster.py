@@ -13,6 +13,7 @@ from . import drift
 from .features import FEATURE_COLUMNS, build_training_frame, features_for_next_day
 
 TEST_DAYS = 60
+MAX_HORIZON_DAYS = 30
 
 
 def wape(y_true, y_pred) -> float:
@@ -94,6 +95,9 @@ class Forecaster:
         self.metrics = bundle.get("metrics", {})
 
     def forecast(self, history: list[float], start: date, days: int) -> list[dict]:
+        days = int(days)
+        if not 1 <= days <= MAX_HORIZON_DAYS:
+            raise ValueError(f"days must be between 1 and {MAX_HORIZON_DAYS}, got {days}")
         hist = list(history)
         out = []
         for i in range(days):

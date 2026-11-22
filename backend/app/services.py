@@ -125,7 +125,13 @@ def recommend_for_product(db: Session, fc: Forecaster, product: Product, today: 
     }
 
 
+MAX_BACKFILL_DAYS = 60
+
+
 def backfill_forecasts(db: Session, fc: Forecaster, product: Product, today: date, days: int) -> int:
+    days = int(days)
+    if not 1 <= days <= MAX_BACKFILL_DAYS:
+        raise ValueError(f"days must be between 1 and {MAX_BACKFILL_DAYS}, got {days}")
     added = 0
     for back in range(days, 0, -1):
         day = today - timedelta(days=back)

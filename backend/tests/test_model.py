@@ -48,3 +48,31 @@ def test_live_features_match_training_features(sales_df):
     live = features_for_next_day(history, row["date"], int(row["on_promo"]), int(row["is_holiday"]))
     for col in FEATURE_COLUMNS:
         assert abs(live[col] - row[col]) < 1e-9, col
+
+
+def test_forecast_rejects_out_of_range_horizon(trained):
+    import os
+    from datetime import date
+
+    import pytest
+
+    from app.ml.forecaster import Forecaster
+
+    fc = Forecaster(os.environ["MODEL_PATH"])
+    history = [10.0] * 60
+    assert len(fc.forecast(history, date(2026, 7, 1), 30)) == 30
+    for bad in (0, 31, 10_000, -5):
+        with pytest.raises(ValueError):
+            fc.forecast(history, date(2026, 7, 1), bad)
+
+
+def test_check_model_only_reads_inside_models_dir(tmp_path):
+    import pytest
+
+    from scripts.check_model import MODELS_DIR, metrics_path
+
+    assert metrics_path("models/forecast_model.metrics.json") == MODELS_DIR / "forecast_model.metrics.json"
+    assert metrics_path(None) == MODELS_DIR / "forecast_model.metrics.json"
+    for bad in ("../data/sales.csv", "/etc/passwd", "../../README.md", str(tmp_path / "x.json"), "models/x.txt"):
+        with pytest.raises(SystemExit):
+            metrics_path(bad)
