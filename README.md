@@ -1,4 +1,4 @@
-# FreshTrack: Secure CI/CD for an Intelligent Food-Retail Inventory System
+#FreshTrack: Secure CI/CD for an Intelligent Food-Retail Inventory System
 
 FreshTrack has two parts:
 
