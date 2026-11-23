@@ -1,0 +1,118 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: freshtrack-alerts
+  namespace: monitoring
+spec:
+  groups:
+    - name: freshtrack.availability
+      rules:
+        - alert: BackendDown
+          expr: sum by (namespace) (up{job="backend"}) == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Backend API is down in {{ $labels.namespace }}"
+            description: "No backend pod is answering /metrics for over a minute."
+
+        - alert: BackendReplicaMissing
+          expr: sum by (namespace) (up{job="backend"}) < 2
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Backend running with fewer than 2 healthy pods in {{ $labels.namespace }}"
+
+        - alert: PodRestartingOften
+          expr: increase(kube_pod_container_status_restarts_total{namespace=~"freshtrack-.*"}[10m]) > 2
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.pod }} restarted more than twice in 10 minutes"
+
+    - name: freshtrack.api
+      rules:
+        - alert: HighErrorRate
+          expr: |
+            sum by (namespace) (rate(http_requests_total{job="backend", status="5xx"}[5m]))
+              /
+            sum by (namespace) (rate(http_requests_total{job="backend"}[5m])) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "More than 5% of API requests are failing in {{ $labels.namespace }}"
+
+        - alert: SlowResponses
+          expr: |
+            histogram_quantile(0.95,
+              sum by (namespace, le) (rate(http_request_duration_seconds_bucket{job="backend"}[5m]))
+            ) > 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "95th percentile latency above 1s in {{ $labels.namespace }}"
+
+    - name: freshtrack.model
+      rules:
+        - alert: ModelIntegrityFailed
+          expr: min by (namespace, pod) (model_integrity_ok) == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "{{ $labels.pod }} refused to load a tampered model"
+            description: "The model file does not match models/manifest.json. Do not redeploy the same image; check the build that produced it."
+
+        - alert: PredictionFailures
+          expr: sum by (namespace, reason) (increase(prediction_failures_total{job="backend", reason!="not_enough_history"}[5m])) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "Forecasts failing ({{ $labels.reason }}) in {{ $labels.namespace }}"
+
+        - alert: ModelDegraded
+          expr: |
+            max by (namespace) (forecast_wape_7d_store)
+              > 1.45 * max by (namespace) (forecast_holdout_wape_store)
+            and on (namespace)
+            max by (namespace) (forecast_eval_days_store) >= 3
+          for: 15m
+          labels:
+            severity: warning
+            action: retrain
+          annotations:
+            summary: "Live forecast error is more than 1.45x the held-out error"
+            description: "Check /model/health. If the data changed, run the retrain workflow (scripts/trigger_retrain.sh)."
+
+        - alert: ForecastBiased
+          expr: |
+            abs(max by (namespace) (forecast_bias_7d_store)) > 15
+            and on (namespace)
+            max by (namespace) (forecast_eval_days_store) >= 3
+          for: 1h
+          labels:
+            severity: info
+          annotations:
+            summary: "Forecasts are biased by more than 15% (positive = over-forecast, risk of waste)"
+
+        - alert: DataDrift
+          expr: max by (namespace) (data_drift_psi_store) > 0.25
+          for: 30m
+          labels:
+            severity: warning
+            action: retrain
+          annotations:
+            summary: "Sales pattern has shifted away from the training data (median PSI > 0.25)"
+            description: "Run the retrain workflow so the model learns the new pattern; the gates decide if the new model ships."
+
+        - alert: HighExpectedWaste
+          expr: max by (namespace) (inventory_expected_waste_units) > 50
+          for: 30m
+          labels:
+            severity: info
+          annotations:
+            summary: "More than 50 units expected to expire unsold in the next 7 days"
+            description: "Business alert - check the EXPIRY_RISK items on the dashboard."
