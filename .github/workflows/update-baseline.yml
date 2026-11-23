@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - run: "pip install --only-binary :all: -r backend/requirements-dev.txt"
+      - run: "pip install --only-binary :all: --require-hashes -r backend/requirements-dev.lock"
 
       - name: Recompute KPIs and write the reference
         working-directory: backend

@@ -32,12 +32,15 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: backend/requirements-dev.txt
+          cache-dependency-path: backend/requirements-dev.lock
 
-      - run: "pip install --only-binary :all: -r requirements-dev.txt"
+      - run: "pip install --only-binary :all: --require-hashes -r requirements-dev.lock"
 
       - name: Lint
         run: ruff check .
+
+      - name: Lock files match pinned requirements
+        run: python scripts/check_lock.py
 
       - name: Validate training data against main
         run: |
@@ -70,9 +73,9 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: backend/requirements-dev.txt
+          cache-dependency-path: backend/requirements-dev.lock
 
-      - run: "pip install --only-binary :all: -r requirements-dev.txt"
+      - run: "pip install --only-binary :all: --require-hashes -r requirements-dev.lock"
 
       - name: Run business-KPI gate
         run: python scripts/policy_gate.py --out ../results/candidate_kpis.json --summary "$GITHUB_STEP_SUMMARY"
@@ -94,7 +97,7 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
-      - run: "pip install --only-binary :all: pyyaml==6.0.4"
+      - run: "pip install --only-binary :all: --require-hashes -r backend/requirements-dev.lock"
       - name: Install promtool (checksum verified)
         run: |
           f="prometheus-${PROM_VERSION}.linux-amd64.tar.gz"

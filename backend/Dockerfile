@@ -6,8 +6,8 @@ WORKDIR /app
 RUN python -m venv /venv
 ENV PATH="/venv/bin:$PATH"
 
-COPY requirements.txt .
-RUN pip install --only-binary :all: -r requirements.txt
+COPY requirements.lock .
+RUN pip install --only-binary :all: --require-hashes -r requirements.lock
 
 COPY app ./app
 COPY scripts ./scripts
