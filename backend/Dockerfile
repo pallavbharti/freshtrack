@@ -7,7 +7,7 @@ RUN python -m venv /venv
 ENV PATH="/venv/bin:$PATH"
 
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --only-binary :all: -r requirements.txt
 
 COPY app ./app
 COPY scripts ./scripts

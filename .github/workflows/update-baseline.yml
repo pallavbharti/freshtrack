@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - run: pip install -r backend/requirements-dev.txt
+      - run: "pip install --only-binary :all: -r backend/requirements-dev.txt"
 
       - name: Recompute KPIs and write the reference
         working-directory: backend

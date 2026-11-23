@@ -92,3 +92,76 @@ def test_committed_reference_is_valid():
     ref = json.loads((Path(DEFAULT_CONFIG).parent.parent / "results" / "baseline_kpis.json").read_text())
     assert set(ref["policies"]) == {"replenish", "baseline", "ours"}
     assert "synthetic" in ref["note"].lower()
+
+
+def run_main(monkeypatch, *args):
+    import sys
+
+    from scripts import policy_gate
+
+    monkeypatch.setattr(sys, "argv", ["policy_gate.py", *map(str, args)])
+    try:
+        policy_gate.main()
+    except SystemExit as e:
+        return e.code or 0
+    return 0
+
+
+def write(path, data):
+    path.write_text(json.dumps(data))
+    return path
+
+
+def test_main_passes_and_writes_outputs(tmp_path, monkeypatch):
+    cand = write(tmp_path / "cand.json", kpis())
+    ref = write(tmp_path / "ref.json", kpis())
+    out, summary = tmp_path / "out" / "result.json", tmp_path / "summary.md"
+    code = run_main(monkeypatch, "--candidate", cand, "--baseline", ref, "--out", out, "--summary", summary)
+    assert code == 0
+    assert json.loads(out.read_text())["gate"]["passed"] is True
+    assert "PASSED" in summary.read_text()
+
+
+def test_main_fails_on_regression(tmp_path, monkeypatch):
+    cand = write(tmp_path / "cand.json", kpis(waste=0.9))
+    ref = write(tmp_path / "ref.json", kpis())
+    assert run_main(monkeypatch, "--candidate", cand, "--baseline", ref) == 1
+
+
+def test_main_without_reference_runs_comparison_checks(tmp_path, monkeypatch, capsys):
+    cand = write(tmp_path / "cand.json", kpis())
+    assert run_main(monkeypatch, "--candidate", cand, "--baseline", tmp_path / "missing.json") == 0
+    assert "no reference" in capsys.readouterr().out
+
+
+def test_write_baseline_only_when_gate_passes(tmp_path, monkeypatch):
+    cand = write(tmp_path / "cand.json", kpis(waste=0.9))
+    ref = write(tmp_path / "ref.json", kpis())
+    before = ref.read_text()
+    assert run_main(monkeypatch, "--candidate", cand, "--baseline", ref, "--write-baseline") == 1
+    assert ref.read_text() == before
+
+
+def test_write_baseline_with_accepted_regression_records_reason(tmp_path, monkeypatch):
+    cand = write(tmp_path / "cand.json", kpis(waste=0.9))
+    ref = write(tmp_path / "ref.json", kpis())
+    code = run_main(monkeypatch, "--candidate", cand, "--baseline", ref, "--write-baseline",
+                    "--accept-regression", "new supplier, reviewed in PR")
+    assert code == 0
+    saved = json.loads(ref.read_text())
+    assert saved["accepted"] == {**saved["accepted"], "gate_passed": False, "reason": "new supplier, reviewed in PR"}
+    assert saved["policies"]["ours"]["waste_rate"] == 0.9
+
+
+def test_write_baseline_when_gate_passes(tmp_path, monkeypatch):
+    cand = write(tmp_path / "cand.json", kpis(waste=0.1, fill=99.8))
+    ref = tmp_path / "new" / "ref.json"
+    assert run_main(monkeypatch, "--candidate", cand, "--baseline", ref, "--write-baseline") == 0
+    assert json.loads(ref.read_text())["accepted"]["reason"] == "gate passed"
+
+
+def test_dataset_change_is_flagged_in_report():
+    other = kpis()
+    other["data"] = {"sha256": "different"}
+    md = markdown(other, kpis(), evaluate(other, kpis(), CONFIG))
+    assert "dataset differs" in md
