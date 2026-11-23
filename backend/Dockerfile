@@ -23,7 +23,10 @@ ENV PATH="/venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     APP_VERSION=${APP_VERSION}
 
-RUN groupadd --system app && useradd --system --gid app --no-create-home app
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system app && useradd --system --gid app --no-create-home app
 
 WORKDIR /app
 COPY --from=build /venv /venv
