@@ -49,7 +49,7 @@ jobs:
           python scripts/validate_data.py data/sales.csv --reference /tmp/ref-profile.json --summary "$GITHUB_STEP_SUMMARY"
 
       - name: Tests
-        run: pytest --cov=app --cov=scripts --cov-report=xml:coverage.xml --junitxml=test-results.xml
+        run: pytest --cov --cov-report=xml:coverage.xml --junitxml=test-results.xml
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
@@ -124,12 +124,19 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci --ignore-scripts
       - run: npm audit --audit-level=high
-      - run: npm test
+      - name: Tests with coverage
+        run: |
+          npm test -- --coverage
+          sed -i 's#^SF:#SF:frontend/#' coverage/lcov.info
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/lcov.info
       - run: npm run build
 
   code-scan:
     name: Static analysis (SonarQube Cloud + Gitleaks + Trivy fs)
-    needs: [backend-tests]
+    needs: [backend-tests, frontend-build]
     runs-on: ubuntu-latest
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -142,6 +149,11 @@ jobs:
         with:
           name: backend-reports
           path: backend
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
 
       - name: Check SonarQube Cloud settings
         id: sonar-cfg
