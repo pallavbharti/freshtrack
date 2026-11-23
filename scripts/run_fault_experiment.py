@@ -228,7 +228,8 @@ def run_github(faults, base, timeout_min):
 
 
 def write(rows, mode):
-    out = ROOT / "results" / f"fault_injection_{mode}.csv"
+    mode = "github" if mode == "github" else "local"
+    out = ROOT / "results" / ("fault_injection_github.csv" if mode == "github" else "fault_injection_local.csv")
     out.parent.mkdir(exist_ok=True)
     with open(out, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=FIELDS)
