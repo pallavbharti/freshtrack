@@ -1,0 +1,128 @@
+name: Retrain model
+
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Where the latest sales come from"
+        type: choice
+        options: [production, committed]
+        default: production
+      reason:
+        description: "Why (e.g. the alert that fired)"
+        required: true
+        default: manual
+  schedule:
+    - cron: "17 2 * * 1"
+  repository_dispatch:
+    types: [retrain]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: retrain
+  cancel-in-progress: false
+
+env:
+  SOURCE: ${{ inputs.source || github.event.client_payload.source || vars.RETRAIN_SOURCE || 'committed' }}
+  REASON: ${{ inputs.reason || github.event.client_payload.reason || github.event_name }}
+
+jobs:
+  export-production:
+    name: Export latest sales from production
+    if: (inputs.source || github.event.client_payload.source || vars.RETRAIN_SOURCE || 'committed') == 'production'
+    runs-on: [self-hosted, linux]
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: ./scripts/export_sales.sh freshtrack-prod latest-sales.csv
+        env:
+          MANAGER_PASSWORD: ${{ secrets.MANAGER_PASSWORD }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: latest-sales
+          path: latest-sales.csv
+          retention-days: 7
+
+  retrain:
+    name: Validate data, retrain, run gates
+    needs: [export-production]
+    if: always() && needs.export-production.result != 'failure' && needs.export-production.result != 'cancelled'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+
+      - run: pip install -r requirements-dev.txt
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: env.SOURCE == 'production'
+        with:
+          name: latest-sales
+          path: backend
+
+      - name: Pick the dataset
+        run: |
+          if [ "$SOURCE" = "production" ]; then
+            mv latest-sales.csv candidate-sales.csv
+          else
+            cp data/sales.csv candidate-sales.csv
+          fi
+          echo "## Retrain: source=$SOURCE, reason=$REASON" >> "$GITHUB_STEP_SUMMARY"
+          echo "rows: $(($(wc -l < candidate-sales.csv) - 1))" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Validate data
+        run: python scripts/validate_data.py candidate-sales.csv --reference data/profile.json --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Train and check model
+        run: |
+          python scripts/train_model.py --data candidate-sales.csv --out models/forecast_model.joblib
+          python scripts/check_model.py models/forecast_model.metrics.json | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Business-KPI gate
+        run: python scripts/policy_gate.py --data candidate-sales.csv --out ../results/candidate_kpis.json --summary "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: retrain-report
+          path: |
+            backend/models/forecast_model.metrics.json
+            results/candidate_kpis.json
+
+      - name: Open a pull request with the new dataset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp candidate-sales.csv data/sales.csv
+          python scripts/validate_data.py data/sales.csv --write-profile data/profile.json
+          if git diff --quiet -- data/; then
+            echo "Dataset unchanged - nothing to propose." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          branch="retrain/${GITHUB_RUN_ID}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add data/sales.csv data/profile.json
+          git commit -m "Retrain on latest sales ($REASON)"
+          git push origin "$branch"
+          gh pr create --base main --head "$branch" \
+            --title "Retrain model on latest sales ($REASON)" \
+            --body "Opened by the *Retrain model* workflow (run ${GITHUB_RUN_ID}, source: ${SOURCE}).
+
+          Data validation, model quality and business-KPI gates passed - see the run summary.
+          Merging runs the full pipeline; the image build trains the model from this dataset."

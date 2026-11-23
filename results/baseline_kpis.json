@@ -1,0 +1,48 @@
+{
+  "note": "Simulated on synthetic data. Not results from a real store.",
+  "units": {
+    "waste_rate": "percent",
+    "fill_rate": "percent"
+  },
+  "data": {
+    "source": "generated(seed=42, end=2026-06-30)",
+    "rows": 5840,
+    "sha256": "31ff26600cd73c0809afece880b4064a8ddd69480907ca4961bb638aa47f6901"
+  },
+  "test_days": 60,
+  "forecast_wape": 15.43,
+  "policies": {
+    "replenish": {
+      "waste_rate": 0.0,
+      "fill_rate": 93.083,
+      "stockout_days": 94,
+      "lost_sales": 917,
+      "expired_units": 0,
+      "received_units": 12485,
+      "demand_units": 13257
+    },
+    "baseline": {
+      "waste_rate": 0.243,
+      "fill_rate": 99.525,
+      "stockout_days": 4,
+      "lost_sales": 63,
+      "expired_units": 33,
+      "received_units": 13570,
+      "demand_units": 13257
+    },
+    "ours": {
+      "waste_rate": 0.273,
+      "fill_rate": 99.525,
+      "stockout_days": 4,
+      "lost_sales": 63,
+      "expired_units": 37,
+      "received_units": 13531,
+      "demand_units": 13257
+    }
+  },
+  "accepted": {
+    "at": "2026-11-22T06:49:52+00:00",
+    "gate_passed": true,
+    "reason": "gate passed"
+  }
+}
