@@ -1,0 +1,7 @@
+[run]
+source = .
+omit =
+    tests/*
+
+[report]
+skip_empty = True

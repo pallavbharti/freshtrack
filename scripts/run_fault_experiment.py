@@ -2,6 +2,7 @@ import argparse
 import csv
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -13,12 +14,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 FAULTS = subprocess.run(["bash", str(ROOT / "scripts/inject_fault.sh"), "list"],
                         capture_output=True, text=True, check=True).stdout.split()
+REF = re.compile(r"[A-Za-z0-9][A-Za-z0-9._/-]{0,99}")
 FIELDS = ["fault", "pipeline", "caught", "stage", "blocked_before_deploy", "time_to_detection_s",
           "mode", "not_run", "detail"]
 
 
 def sh(cmd, cwd=None, check=False, env=None):
-    return subprocess.run(cmd, cwd=cwd, shell=isinstance(cmd, str), capture_output=True, text=True,
+    return subprocess.run(list(cmd), cwd=cwd, shell=False, capture_output=True, text=True,
                           check=check, env=env)
 
 
@@ -226,7 +228,8 @@ def run_github(faults, base, timeout_min):
 
 
 def write(rows, mode):
-    out = ROOT / "results" / f"fault_injection_{mode}.csv"
+    mode = "github" if mode == "github" else "local"
+    out = ROOT / "results" / ("fault_injection_github.csv" if mode == "github" else "fault_injection_local.csv")
     out.parent.mkdir(exist_ok=True)
     with open(out, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=FIELDS)
@@ -267,10 +270,12 @@ def write(rows, mode):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["local", "github"], required=True)
-    parser.add_argument("--faults", nargs="*", default=FAULTS)
+    parser.add_argument("--faults", nargs="*", choices=FAULTS, default=FAULTS)
     parser.add_argument("--base", default="main")
     parser.add_argument("--timeout-min", type=int, default=60)
     args = parser.parse_args()
+    if not REF.fullmatch(args.base) or ".." in args.base:
+        parser.error("--base must be a plain branch or tag name")
 
     if sh(["git", "status", "--porcelain"], cwd=ROOT).stdout.strip():
         sys.exit("working tree not clean - commit or stash first")
