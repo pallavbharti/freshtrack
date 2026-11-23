@@ -1,0 +1,473 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: freshtrack-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  freshtrack.json: |
+    {
+      "uid": "freshtrack",
+      "title": "FreshTrack - API, pipeline and inventory health",
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "refresh": "30s",
+      "time": {
+        "from": "now-6h",
+        "to": "now"
+      },
+      "templating": {
+        "list": [
+          {
+            "name": "datasource",
+            "type": "datasource",
+            "query": "prometheus",
+            "label": "Data source"
+          },
+          {
+            "name": "namespace",
+            "type": "custom",
+            "label": "Environment",
+            "query": "freshtrack-prod,freshtrack-staging",
+            "current": {
+              "text": "freshtrack-prod",
+              "value": "freshtrack-prod"
+            }
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Healthy backend pods",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 6,
+            "h": 5
+          },
+          "targets": [
+            {
+              "expr": "sum(up{job=\"backend\",namespace=~\"$namespace\"})",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          }
+        },
+        {
+          "id": 2,
+          "title": "Requests / sec",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "x": 6,
+            "y": 0,
+            "w": 6,
+            "h": 5
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_total{job=\"backend\",namespace=~\"$namespace\"}[5m]))",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 3,
+          "title": "Error rate (5xx)",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 0,
+            "w": 6,
+            "h": 5
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_total{job=\"backend\",status=\"5xx\",namespace=~\"$namespace\"}[5m])) / clamp_min(sum(rate(http_requests_total{job=\"backend\",namespace=~\"$namespace\"}[5m])), 1e-9)",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 4,
+          "title": "Model MAE (held-out)",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "x": 18,
+            "y": 0,
+            "w": 6,
+            "h": 5
+          },
+          "targets": [
+            {
+              "expr": "max(forecast_model_mae{namespace=~\"$namespace\"})",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          }
+        },
+        {
+          "id": 5,
+          "title": "Request rate by endpoint",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 5,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "expr": "sum by (handler) (rate(http_requests_total{job=\"backend\",namespace=~\"$namespace\"}[5m]))",
+              "refId": "A",
+              "legendFormat": "{{handler}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 6,
+          "title": "Latency p50 / p95",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 5,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.5, sum by (le) (rate(http_request_duration_seconds_bucket{job=\"backend\",namespace=~\"$namespace\"}[5m])))",
+              "refId": "A",
+              "legendFormat": "p50"
+            },
+            {
+              "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{job=\"backend\",namespace=~\"$namespace\"}[5m])))",
+              "refId": "B",
+              "legendFormat": "p95"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 7,
+          "title": "Responses by status",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 13,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "expr": "sum by (status) (rate(http_requests_total{job=\"backend\",namespace=~\"$namespace\"}[5m]))",
+              "refId": "A",
+              "legendFormat": "{{status}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 8,
+          "title": "Pod restarts (last 1h)",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 13,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "expr": "sum by (pod) (increase(kube_pod_container_status_restarts_total{namespace=~\"$namespace\"}[1h]))",
+              "refId": "A",
+              "legendFormat": "{{pod}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          }
+        },
+        {
+          "id": 9,
+          "title": "Prediction failures",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 21,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "expr": "sum by (reason) (increase(prediction_failures_total{namespace=~\"$namespace\"}[5m]))",
+              "refId": "A",
+              "legendFormat": "{{reason}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          }
+        },
+        {
+          "id": 10,
+          "title": "Recommendations by action",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 21,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "expr": "max by (action) (inventory_recommendations{namespace=~\"$namespace\"})",
+              "refId": "A",
+              "legendFormat": "{{action}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          }
+        },
+        {
+          "id": 11,
+          "title": "Units expected to expire (next 7 days)",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 29,
+            "w": 24,
+            "h": 7
+          },
+          "targets": [
+            {
+              "expr": "max(inventory_expected_waste_units{namespace=~\"$namespace\"})",
+              "refId": "A",
+              "legendFormat": "expected waste"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          }
+        },
+        {
+          "id": 12,
+          "title": "Live forecast WAPE, 7 days (%)",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 36,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "expr": "max by (sku) (forecast_wape_7d{namespace=~\"$namespace\"})",
+              "refId": "A",
+              "legendFormat": "{{sku}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 13,
+          "title": "Store: live WAPE / held-out WAPE (ModelDegraded above 1.45)",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 36,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "expr": "max(forecast_wape_7d_store{namespace=~\"$namespace\"}) / max(forecast_holdout_wape_store{namespace=~\"$namespace\"})",
+              "refId": "A",
+              "legendFormat": "ratio"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          }
+        },
+        {
+          "id": 14,
+          "title": "Store forecast bias, 7 days (%) - above 0 = over-forecast",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 44,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "expr": "max(forecast_bias_7d_store{namespace=~\"$namespace\"})",
+              "refId": "A",
+              "legendFormat": "bias"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 15,
+          "title": "Data drift: median PSI across products (alert above 0.25)",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 44,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "expr": "max(data_drift_psi_store{namespace=~\"$namespace\"})",
+              "refId": "A",
+              "legendFormat": "store median PSI"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          }
+        },
+        {
+          "id": 16,
+          "title": "Data drift PSI per product",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 52,
+            "w": 24,
+            "h": 7
+          },
+          "targets": [
+            {
+              "expr": "max by (sku) (data_drift_psi{namespace=~\"$namespace\"})",
+              "refId": "A",
+              "legendFormat": "{{sku}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          }
+        }
+      ]
+    }
