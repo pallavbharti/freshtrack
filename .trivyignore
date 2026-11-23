@@ -1,1 +1,8 @@
-
+# nginx 1.30.6 in nginx-unprivileged:stable-alpine; fixed upstream in 1.30.7 (2026-11-18), image not rebuilt yet.
+# nginx.conf uses none of the affected paths: no mail, HTTP/2, HTTP/3, TLS or resolver. Entries expire automatically.
+CVE-2026-113425 exp:2026-12-07
+CVE-2026-121810 exp:2026-12-07
+CVE-2026-123007 exp:2026-12-07
+CVE-2026-123633 exp:2026-12-07
+CVE-2026-118899 exp:2026-12-07
+CVE-2026-123634 exp:2026-12-07

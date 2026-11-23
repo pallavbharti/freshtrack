@@ -1,0 +1,17 @@
+regression:
+  max_waste_rate_increase_pp: 0.10
+  max_fill_rate_drop_pp: 0.20
+  max_stockout_days_increase: 2
+  max_forecast_wape_increase_pp: 2.0
+
+policy_comparison:
+  vs_baseline:
+    max_waste_rate_excess_pp: 0.10
+    max_fill_rate_shortfall_pp: 0.10
+  vs_replenish:
+    min_fill_rate_gain_pp: 2.0
+
+absolute:
+  max_waste_rate: 1.0
+  min_fill_rate: 98.0
+  max_forecast_wape: 20.0
