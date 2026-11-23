@@ -1,0 +1,18 @@
+PRODUCTS = [
+    {"sku": "MLK-001", "name": "Toned Milk 1L", "category": "Dairy",
+     "shelf_life_days": 3, "lead_time_days": 1, "unit_price": 56, "avg_daily_demand": 40},
+    {"sku": "CRD-002", "name": "Curd 400g", "category": "Dairy",
+     "shelf_life_days": 5, "lead_time_days": 1, "unit_price": 45, "avg_daily_demand": 22},
+    {"sku": "PNR-003", "name": "Paneer 200g", "category": "Dairy",
+     "shelf_life_days": 7, "lead_time_days": 2, "unit_price": 90, "avg_daily_demand": 12},
+    {"sku": "BRD-004", "name": "Whole Wheat Bread", "category": "Bakery",
+     "shelf_life_days": 4, "lead_time_days": 1, "unit_price": 50, "avg_daily_demand": 28},
+    {"sku": "BAN-005", "name": "Banana (dozen)", "category": "Fruits",
+     "shelf_life_days": 5, "lead_time_days": 2, "unit_price": 60, "avg_daily_demand": 18},
+    {"sku": "TOM-006", "name": "Tomato 1kg", "category": "Vegetables",
+     "shelf_life_days": 6, "lead_time_days": 2, "unit_price": 40, "avg_daily_demand": 30},
+    {"sku": "SPN-007", "name": "Spinach Bunch", "category": "Vegetables",
+     "shelf_life_days": 2, "lead_time_days": 1, "unit_price": 25, "avg_daily_demand": 15},
+    {"sku": "EGG-008", "name": "Eggs (pack of 6)", "category": "Poultry",
+     "shelf_life_days": 14, "lead_time_days": 3, "unit_price": 48, "avg_daily_demand": 20},
+]
