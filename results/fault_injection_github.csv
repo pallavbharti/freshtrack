@@ -1,0 +1,19 @@
+fault,pipeline,caught,stage,blocked_before_deploy,time_to_detection_s,mode,not_run,detail
+vuln-dependency,basic,yes,Lint + unit tests / Run pytest --cov=app --cov=scripts --cov-report=xml:coverage.xml,yes,48,github,,run 45477790409
+vuln-dependency,full,yes,Backend lint + tests + model check / Lock files match pinned requirements,yes,27,github,,run 45477790203
+failing-test,basic,yes,Lint + unit tests / Run pytest --cov=app --cov=scripts --cov-report=xml:coverage.xml,yes,77,github,,run 45477806613
+failing-test,full,yes,Backend lint + tests + model check / Tests,yes,78,github,,run 45477806614
+hardcoded-secret,basic,yes,SonarQube + Trivy (default scanners) / SonarQube Cloud scan,yes,219,github,,run 45477798885
+hardcoded-secret,full,yes,Static analysis (SonarQube Cloud + Gitleaks + Trivy fs) / SonarQube Cloud scan,yes,205,github,,run 45477798864
+root-container,basic,yes,SonarQube + Trivy (default scanners) / SonarQube Cloud scan,yes,160,github,,run 45477825241
+root-container,full,yes,Static analysis (SonarQube Cloud + Gitleaks + Trivy fs) / SonarQube Cloud scan,yes,210,github,,run 45477825311
+poisoned-data,basic,yes,Build + image scan (backend) / Run docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc,yes,230,github,,run 45477842192
+poisoned-data,full,yes,Backend lint + tests + model check / Validate training data against main,yes,34,github,,run 45477842050
+model-degradation,basic,no,,no,,github,,run 45477811929
+model-degradation,full,yes,Business-KPI gate (waste / fill rate) / Run business-KPI gate,yes,113,github,,run 45477811886
+expiry-policy-bug,basic,no,,no,,github,,run 45477818983
+expiry-policy-bug,full,yes,Business-KPI gate (waste / fill rate) / Run business-KPI gate,yes,127,github,,run 45477818850
+control,basic,ok (no alarm),,no,,github,,run 45477783539
+control,full,ok (no alarm),,no,,github,,run 45477783499
+tampered-model,basic,no,,no,,github,,run 45477833200
+tampered-model,full,yes,"Build, test, scan, sign image (backend) / Container smoke test",yes,356,github,,run 45477833010
