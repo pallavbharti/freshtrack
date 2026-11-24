@@ -188,7 +188,7 @@ jobs:
           curl --proto '=https' --tlsv1.2 -sSLf -o "$f" "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/$f"
           echo "${GITLEAKS_SHA256}  $f" | sha256sum -c -
           tar xzf "$f" gitleaks
-          ./gitleaks git --no-banner --redact --exit-code 1 .
+          ./gitleaks git --no-banner --redact --exit-code 1 --log-opts="HEAD" .
 
       - name: Trivy filesystem scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0

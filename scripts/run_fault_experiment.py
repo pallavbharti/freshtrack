@@ -202,6 +202,8 @@ def run_github(faults, base, timeout_min):
                 print(f"finished: {fault}")
     for fault in pending:
         print(f"timed out waiting for {fault}")
+    for fault in faults:
+        sh(["git", "push", "-q", "origin", "--delete", f"fault/{fault}"], cwd=ROOT)
 
     for fault, runs in done.items():
         for pipeline, wf in (("basic", "CI basic (comparison)"), ("full", "CI/CD")):
