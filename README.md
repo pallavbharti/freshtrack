@@ -5,9 +5,10 @@
 FreshTrack is an intelligent inventory management system built for perishable food products. It predicts upcoming demand, tracks stock and expiry dates, and helps answer two practical questions for a store:
 
 **What should we reorder?**  
-**What is likely to expire before we can sell it?**
 
 Building the forecasting model is only one part of the problem. A model update can improve prediction accuracy and still lead to poor inventory decisions, such as higher food waste or more stockouts.
+
+**What is likely to expire before we can sell it?**
 
 FreshTrack addresses this by combining inventory intelligence with a secure CI/CD and monitoring workflow. Every important change is tested, evaluated against business KPIs, scanned for security issues, and monitored after deployment.
 
